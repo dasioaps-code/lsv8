@@ -14,6 +14,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   restaurant: Restaurant | null;
+  subscriptionData: any;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string, metadata: {
@@ -23,6 +24,7 @@ interface AuthContextType {
   }) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
+  refreshSubscription: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -40,6 +42,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);
+  const [subscriptionData, setSubscriptionData] = useState<any>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -67,6 +70,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Fetch restaurant without blocking - set loading to false immediately
           setLoading(false);
           fetchRestaurant(session.user.id);
+          // Also check subscription status
+          checkSubscriptionStatus(session.user.id);
         } else {
           console.log('👤 No user, setting loading to false');
           setLoading(false);
@@ -93,8 +98,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           // Don't block UI for restaurant fetching
           fetchRestaurant(session.user.id);
+          checkSubscriptionStatus(session.user.id);
         } else {
           setRestaurant(null);
+          setSubscriptionData(null);
         }
         
         // Always set loading to false for auth state changes
@@ -107,6 +114,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       subscription.unsubscribe();
     };
   }, []);
+
+  const checkSubscriptionStatus = async (userId: string) => {
+    try {
+      const { SubscriptionService } = await import('../services/subscriptionService');
+      const data = await SubscriptionService.checkSubscriptionAccess(userId);
+      setSubscriptionData(data);
+      console.log('✅ Subscription status checked:', data);
+    } catch (error) {
+      console.error('❌ Error checking subscription status:', error);
+    }
+  };
 
   const fetchRestaurant = async (userId: string) => {
     try {
@@ -372,11 +390,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     session,
     restaurant,
+    subscriptionData,
     loading,
     signIn,
     signUp,
     signOut,
     resetPassword,
+    refreshSubscription: () => user ? checkSubscriptionStatus(user.id) : Promise.resolve(),
   };
 
   return (

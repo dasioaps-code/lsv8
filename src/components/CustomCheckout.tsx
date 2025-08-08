@@ -103,19 +103,33 @@ const CheckoutForm: React.FC<{
       const { clientSecret, subscriptionId } = await response.json();
 
       // Confirm payment with card details
-const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
-  payment_method: {
-    card: cardElement,
-    billing_details: {
-      email: user.email,
-    },
-  },
-});
+      const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: cardElement,
+          billing_details: {
+            email: user.email,
+          },
+        },
+      });
 
-if (confirmError) {
-  throw new Error(confirmError.message);
-}
+      if (confirmError) {
+        throw new Error(confirmError.message);
+      }
 
+      console.log('✅ Payment confirmed successfully:', paymentIntent?.id);
+      
+      // Wait a moment for webhook processing
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Force refresh subscription data
+      if (user) {
+        try {
+          await SubscriptionService.refreshSubscriptionData(user.id);
+          console.log('✅ Subscription data refreshed after payment');
+        } catch (refreshError) {
+          console.warn('⚠️ Could not refresh subscription data:', refreshError);
+        }
+      }
 
       // Payment successful
       onSuccess();

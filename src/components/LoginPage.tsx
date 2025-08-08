@@ -8,11 +8,27 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const { signIn } = useAuth();
+  const { signIn, refreshSubscription } = useAuth();
 
   // Check for success message from signup
   const successMessage = location.state?.message;
   const prefilledEmail = location.state?.email;
+  
+  // Check for payment success
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get('payment');
+    
+    if (paymentStatus === 'success') {
+      // Show payment success message
+      setTimeout(() => {
+        alert('Payment successful! Your subscription is now active.');
+      }, 1000);
+      
+      // Clean up URL
+      window.history.replaceState({}, '', '/login');
+    }
+  }, []);
 
   React.useEffect(() => {
     if (prefilledEmail) {
@@ -27,6 +43,9 @@ const LoginPage: React.FC = () => {
 
     try {
       await signIn(email, password);
+      
+      // Refresh subscription data after successful login
+      await refreshSubscription();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {

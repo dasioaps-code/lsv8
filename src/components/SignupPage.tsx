@@ -168,7 +168,8 @@ const SignupPage: React.FC = () => {
         await handleStripeCheckout();
       }
     } catch (err: any) {
-      setError('Failed to complete signup. Please try signing in if your account was created.');
+      console.error('Signup error:', err);
+      setError(err.message || 'Failed to complete signup. Please try signing in if your account was created.');
     } finally {
       setLoading(false);
     }
@@ -197,7 +198,7 @@ const SignupPage: React.FC = () => {
         body: JSON.stringify({
           planType: selectedPlan,
           autoRenew,
-          successUrl: `${window.location.origin}/login?payment=success&email=${encodeURIComponent(formData.email)}`,
+          successUrl: `${window.location.origin}/dashboard?payment=success&plan=${selectedPlan}`,
           cancelUrl: `${window.location.origin}/signup?payment=cancelled`
         })
       });
@@ -232,6 +233,8 @@ const SignupPage: React.FC = () => {
         setError('Your account is being set up. Please wait a moment and try again.');
       } else if (err.message?.includes('Payment system is not fully configured')) {
         setError('Payment system is being configured. Please try the free trial for now.');
+      } else if (err.message?.includes('Price ID not configured')) {
+        setError('Payment system is not fully configured. Please contact support or try the free trial.');
       } else {
         setError(err.message || 'Payment processing temporarily unavailable. Please try again or contact support.');
       }

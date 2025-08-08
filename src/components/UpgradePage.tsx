@@ -17,7 +17,7 @@ const UpgradePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showCheckout, setShowCheckout] = useState(false);
   const [error, setError] = useState('');
-  const { user } = useAuth();
+  const { user, refreshSubscription } = useAuth();
   const navigate = useNavigate();
 
   const plans = [
@@ -104,6 +104,13 @@ const currentPlan = plans.find(p => p.planId === selectedPlan);
 
   const handlePaymentSuccess = async () => {
     setShowCheckout(false);
+    
+    // Refresh subscription data
+    await refreshSubscription();
+    
+    // Wait a moment for data to propagate
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
     await loadCurrentSubscription();
     navigate('/dashboard?payment=success');
   };

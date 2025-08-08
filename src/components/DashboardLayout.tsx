@@ -31,13 +31,22 @@ export default function DashboardLayout() {
   React.useEffect(() => {
     if (user) {
       checkSubscription();
+      
+      // Set up periodic refresh to catch subscription updates
+      const interval = setInterval(() => {
+        checkSubscription();
+      }, 30000); // Check every 30 seconds
+      
+      return () => clearInterval(interval);
     }
   }, [user]);
 
   const checkSubscription = async () => {
     if (!user) return;
     try {
+      console.log('🔄 Checking subscription in dashboard layout...');
       const data = await SubscriptionService.checkSubscriptionAccess(user.id);
+      console.log('📋 Dashboard subscription data:', data);
       setSubscriptionData(data);
     } catch (error) {
       console.error('Error checking subscription:', error);

@@ -17,7 +17,7 @@ import { Link } from 'react-router-dom';
 const DashboardHome = () => {
   const [timeRange, setTimeRange] = useState('7d');
   const [showROIDashboard, setShowROIDashboard] = useState(false);
-  const { restaurant } = useAuth();
+  const { restaurant, refreshSubscription } = useAuth();
   const {
     stats,
     recentActivity,
@@ -31,6 +31,28 @@ const DashboardHome = () => {
     error,
     refreshData
   } = useDashboardData(timeRange);
+
+  // Check for payment success in URL params
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get('payment');
+    const planType = urlParams.get('plan');
+    
+    if (paymentStatus === 'success' && planType) {
+      console.log('🎉 Payment success detected, refreshing subscription...');
+      
+      // Show success message
+      setTimeout(() => {
+        alert(`Payment successful! Your ${planType} plan is now active.`);
+      }, 1000);
+      
+      // Refresh subscription data
+      refreshSubscription();
+      
+      // Clean up URL
+      window.history.replaceState({}, '', '/dashboard');
+    }
+  }, [refreshSubscription]);
 
   const iconMap = {
     'Total Customers': Users,

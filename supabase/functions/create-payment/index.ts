@@ -117,10 +117,9 @@ Deno.serve(async (req: Request) => {
         amount: amounts[planType],
         currency: 'usd',
         customer: stripeCustomerId,
-        payment_method: paymentMethodId,
-        confirmation_method: 'manual',
-        confirm: true,
-        return_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/payment-return`,
+        automatic_payment_methods: {
+          enabled: true,
+        },
         metadata: {
           user_id: user.id,
           plan_type: planType,
@@ -130,7 +129,7 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({ 
           clientSecret: paymentIntent.client_secret,
-          status: paymentIntent.status 
+          paymentIntentId: paymentIntent.id
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

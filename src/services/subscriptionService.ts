@@ -163,6 +163,7 @@ export class SubscriptionService {
 
   static async getUserSubscription(userId: string): Promise<Subscription | null> {
     try {
+      console.log('🔍 Fetching subscription for user:', userId);
       const { data, error } = await supabase
         .from('subscriptions')
         .select('*')
@@ -173,13 +174,14 @@ export class SubscriptionService {
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error fetching subscription:', error);
-        return null;
+        throw error;
       }
       
+      console.log('📋 Subscription data:', data ? `${data.plan_type} - ${data.status} - expires: ${data.current_period_end}` : 'None found');
       return data;
     } catch (error: any) {
       console.error('Error fetching user subscription:', error);
-      return null;
+      throw error;
     }
   }
 
@@ -210,8 +212,9 @@ export class SubscriptionService {
     daysRemaining?: number;
   }> {
     try {
-      // Direct subscription check without RPC function
+      console.log('🔍 Checking subscription access for user:', userId);
       const subscription = await this.getUserSubscription(userId);
+      console.log('📋 Found subscription:', subscription ? `${subscription.plan_type} - ${subscription.status}` : 'None');
       return this.fallbackAccessCheck(subscription);
     } catch (error: any) {
       console.error('Error checking subscription access:', error);
@@ -231,7 +234,10 @@ export class SubscriptionService {
     features: PlanFeatures;
     daysRemaining?: number;
   } {
+    console.log('🔍 Fallback access check for subscription:', subscription ? `${subscription.plan_type} - ${subscription.status}` : 'None');
+    
     if (!subscription) {
+      console.log('⚠️ No subscription found, providing trial access');
       return {
         hasAccess: true, // Allow access for new users
         subscription: null,
@@ -244,6 +250,14 @@ export class SubscriptionService {
     const endDate = new Date(subscription.current_period_end);
     const hasAccess = subscription.status === 'active' && endDate > now;
     const daysRemaining = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+    console.log('📊 Access check result:', {
+      hasAccess,
+      status: subscription.status,
+      endDate: endDate.toISOString(),
+      daysRemaining: Math.max(0, daysRemaining),
+      planType: subscription.plan_type
+    });
 
     return {
       hasAccess,
@@ -282,6 +296,66 @@ export class SubscriptionService {
       customBranding: false,
       apiAccess: false
     };
+  }
+
+  static async refreshSubscriptionData(userId: string): Promise<void> {
+    try {
+      console.log('🔄 Force refreshing subscription data for user:', userId);
+      
+      // Clear any cached data and fetch fresh from database
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', userId)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('❌ Error refreshing subscription:', error);
+        throw error;
+      }
+
+      console.log('✅ Refreshed subscription data:', data ? `${data.plan_type} - ${data.status}` : 'None');
+    } catch (error) {
+      console.error('Error refreshing subscription data:', error);
+      throw error;
+    }
+  }
+
+  static async getPaymentHistory(userId: string): Promise<any[]> {
+    try {
+      // In a real implementation, you would fetch from Stripe
+      // For now, return subscription-based history
+      const subscription = await this.getUserSubscription(userId);
+      
+      if (!subscription) return [];
+
+      // Create a payment history entry based on subscription
+      const history = [{
+        id: subscription.id,
+        amount: this.getPlanAmount(subscription.plan_type),
+        status: subscription.status === 'active' ? 'paid' : 'failed',
+        created: new Date(subscription.created_at).getTime() / 1000,
+        period_start: new Date(subscription.current_period_start).getTime() / 1000,
+        period_end: new Date(subscription.current_period_end).getTime() / 1000,
+        plan_type: subscription.plan_type
+      }];
+
+      return history;
+    } catch (error) {
+      console.error('Error fetching payment history:', error);
+      return [];
+    }
+  }
+
+  private static getPlanAmount(planType: string): number {
+    switch (planType) {
+      case 'monthly': return 299; // $2.99 in cents
+      case 'semiannual': return 999; // $9.99 in cents  
+      case 'annual': return 1999; // $19.99 in cents
+      default: return 0;
+    }
   }
 
   static async getAllSubscriptions(): Promise<(Subscription & { 
