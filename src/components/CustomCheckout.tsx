@@ -119,11 +119,12 @@ const CheckoutForm: React.FC<{
       console.log('✅ Payment confirmed successfully:', paymentIntent?.id);
       
       // Wait a moment for webhook processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 3000));
       
       // Force refresh subscription data
       if (user) {
         try {
+          const { SubscriptionService } = await import('../services/subscriptionService');
           await SubscriptionService.refreshSubscriptionData(user.id);
           console.log('✅ Subscription data refreshed after payment');
         } catch (refreshError) {

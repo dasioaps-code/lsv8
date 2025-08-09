@@ -264,19 +264,25 @@ export class SubscriptionService {
   }
 
   static async getPaymentHistory(userId: string): Promise<any[]> {
-    const subscription = await this.getUserSubscription(userId);
-    if (!subscription) return [];
-    return [
-      {
-        id: subscription.id,
-        amount: this.getPlanAmount(subscription.plan_type),
-        status: subscription.status === 'active' ? 'paid' : 'failed',
-        created: new Date(subscription.created_at).getTime() / 1000,
-        period_start: new Date(subscription.current_period_start).getTime() / 1000,
-        period_end: new Date(subscription.current_period_end).getTime() / 1000,
-        plan_type: subscription.plan_type,
-      },
-    ];
+    try {
+      const subscription = await this.getUserSubscription(userId);
+      if (!subscription) return [];
+      
+      return [
+        {
+          id: subscription.id,
+          amount: this.getPlanAmount(subscription.plan_type),
+          status: subscription.status === 'active' ? 'paid' : 'failed',
+          created: new Date(subscription.created_at).getTime() / 1000,
+          period_start: new Date(subscription.current_period_start).getTime() / 1000,
+          period_end: new Date(subscription.current_period_end).getTime() / 1000,
+          plan_type: subscription.plan_type,
+        },
+      ];
+    } catch (error) {
+      console.error('Error fetching payment history:', error);
+      return [];
+    }
   }
 
   private static getPlanAmount(planType: string): number {

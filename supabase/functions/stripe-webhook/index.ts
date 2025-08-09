@@ -212,8 +212,6 @@ async function handleSubscriptionUpdate(
     // Check if subscription already exists
     const { data: existingSubscription, error: fetchError } = await supabase
       .from('subscriptions')
-      .select('*')
-      .eq('user_id', userId)
       .single();
 
     if (fetchError && fetchError.code !== 'PGRST116') {
@@ -234,27 +232,31 @@ async function handleSubscriptionUpdate(
 
     if (existingSubscription) {
       // Update existing subscription
-      const { error: updateError } = await supabase
+      const { data: updatedData, error: updateError } = await supabase
         .from('subscriptions')
         .update(subscriptionData)
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .select()
+        .single();
 
       if (updateError) {
         console.error('Error updating subscription:', updateError);
         throw updateError;
       }
-      console.log('Subscription updated successfully for user:', userId);
+      console.log('Subscription updated successfully for user:', userId, 'New data:', updatedData);
     } else {
       // Create new subscription
-      const { error: insertError } = await supabase
+      const { data: newData, error: insertError } = await supabase
         .from('subscriptions')
-        .insert(subscriptionData);
+        .insert(subscriptionData)
+        .select()
+        .single();
 
       if (insertError) {
         console.error('Error creating subscription:', insertError);
         throw insertError;
       }
-      console.log('New subscription created successfully for user:', userId);
+      console.log('New subscription created successfully for user:', userId, 'New data:', newData);
     }
 
   } catch (error) {

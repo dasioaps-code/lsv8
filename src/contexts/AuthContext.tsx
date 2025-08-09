@@ -120,7 +120,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { SubscriptionService } = await import('../services/subscriptionService');
       const data = await SubscriptionService.checkSubscriptionAccess(userId);
       setSubscriptionData(data);
-      console.log('✅ Subscription status checked:', data);
+      console.log('✅ Subscription status checked:', {
+        hasAccess: data.hasAccess,
+        planType: data.subscription?.plan_type,
+        status: data.subscription?.status,
+        daysRemaining: data.daysRemaining
+      });
     } catch (error) {
       console.error('❌ Error checking subscription status:', error);
     }

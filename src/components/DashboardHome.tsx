@@ -47,7 +47,9 @@ const DashboardHome = () => {
       }, 1000);
       
       // Refresh subscription data
-      refreshSubscription();
+      setTimeout(() => {
+        refreshSubscription();
+      }, 2000);
       
       // Clean up URL
       window.history.replaceState({}, '', '/dashboard');
